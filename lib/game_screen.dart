@@ -337,7 +337,7 @@ class _GameScreenState extends State<GameScreen>
                             _buildInstructionRow(Icons.child_friendly, 'Tap on the babies to earn points.', Colors.green.shade300),
                             const SizedBox(height: 16),
                             _buildInstructionRow(Icons.warning_amber_rounded, 'Don\'t let the babies fall (3 misses and the game is over).', Colors.orange.shade300),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 17),
                             _buildInstructionRow(Icons.elderly, 'Tapping on an old man is an instant loss.', Colors.red.shade300),
                           ],
                         ),
