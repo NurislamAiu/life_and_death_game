@@ -413,6 +413,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {
       _score = newScore;
       _entities.removeWhere((e) => e.id == entity.id);
+
     });
 
     if (newScore > 0 && newScore % 150 == 0) {
