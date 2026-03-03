@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 enum GameStatus { Welcome, Playing }
-enum EntityType { baby, oldMan, heart }
+enum EntityType { baby, oldMan, heart, businessman }
 
 class ExplosionEffect {
   final Offset position;
@@ -142,10 +142,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   AnimationController? _gameLoopController;
   AnimationController? _shakeController;
   Animation<double>? _shakeAnimation;
+  bool _isBusinessmanModeActive = false;
 
   final List<Angel> _angels = [];
   final List<ExplosionEffect> _explosions = [];
-  double get _currentSpeed => 0.1 + (_score / 10) * 0.005;
+  double get _currentSpeed => 0.08 + (_score / 10) * 0.005;
 
   bool _flashRed = false;
   bool _flashWhite = false;
@@ -188,6 +189,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _flashRed = false;
       _flashWhite = false;
       _isBossModeActive = false;
+      _isBusinessmanModeActive = false;
       _hugeBaby = null;
     });
     _spawnTimer?.cancel();
@@ -216,7 +218,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     double spawnRate;
     switch (_difficulty) {
       case Difficulty.easy:
-        spawnRate = 1800;
+        spawnRate = 1500; // Harder easy mode (was 1800)
         break;
       case Difficulty.medium:
         spawnRate = 1200;
@@ -237,7 +239,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     double oldManChance;
     switch (_difficulty) {
       case Difficulty.easy:
-        oldManChance = 0.15;
+        oldManChance = 0.25; // More old men (was 0.20)
         break;
       case Difficulty.medium:
         oldManChance = 0.25;
@@ -247,10 +249,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
     }
     final isOldMan = random.nextDouble() < oldManChance;
+    final isBusinessman = !isOldMan && random.nextDouble() < 0.1;
+
+    final entityType = isOldMan
+        ? EntityType.oldMan
+        : isBusinessman
+            ? EntityType.businessman
+            : EntityType.baby;
 
     final entity = FallingEntity(
       id: _entityIdCounter++,
-      type: isOldMan ? EntityType.oldMan : EntityType.baby,
+      type: entityType,
       position: Offset(random.nextDouble() * 80 + 10, -10),
       velocity: isOldMan
           ? Offset(
@@ -406,7 +415,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       return;
     }
 
-    const points = 1;
+    int points;
+    switch (entity.type) {
+      case EntityType.businessman:
+        points = 5;
+        setState(() => _isBusinessmanModeActive = true);
+        break;
+      case EntityType.baby:
+      default:
+        points = 1;
+        break;
+    }
+
     _showFloatingScore(entity.position, points);
 
     final newScore = _score + points;
@@ -423,7 +443,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _spawnHealingObject();
       }
       if (newScore % 50 == 0) {
-        _clearOldMen();
+        _clearEverything();
       }
       if (newScore % 25 == 0) {
         _spawnAngel();
@@ -460,11 +480,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() => _entities.add(entity));
   }
 
-  void _clearOldMen() {
+  void _clearEverything() {
     if (!mounted) return;
     setState(() {
-      _entities.removeWhere((e) => e.type == EntityType.oldMan);
-      _flashWhite = true; // Trigger flash
+      _entities.clear();
+      _angels.removeWhere((a) => !a.isPermanent);
+      _flashWhite = true;
     });
     Timer(const Duration(milliseconds: 200),
         () => setState(() => _flashWhite = false));
@@ -536,7 +557,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget _buildGameContent() {
     return Stack(
       children: [
-        _buildAnimatedBackground(),
+        _isBusinessmanModeActive
+            ? _buildBusinessmanBackground()
+            : _buildAnimatedBackground(),
         GestureDetector(
           onTapDown: _handleTapDown,
           child: CustomPaint(
@@ -560,6 +583,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             color: Colors.white.withOpacity(0.7),
           ),
       ],
+    );
+  }
+
+  Widget _buildBusinessmanBackground() {
+    return Container(
+      color: Colors.blue.shade900,
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 5,
+        ),
+        itemBuilder: (context, index) {
+          return Icon(
+            Icons.business_center,
+            size: 50,
+            color: Colors.white.withOpacity(0.1),
+          );
+        },
+      ),
     );
   }
 
@@ -797,6 +838,12 @@ class GamePainter extends CustomPainter {
         gradientColors = [Colors.pink.shade300, Colors.red.shade400];
         borderColor = Colors.pink.shade200;
         shadowColor = Colors.red.shade400.withOpacity(0.7);
+        break;
+      case EntityType.businessman:
+        emoji = '💼';
+        gradientColors = [Colors.blue.shade300, Colors.blue.shade500];
+        borderColor = Colors.blue.shade200;
+        shadowColor = Colors.blue.shade400.withOpacity(0.7);
         break;
     }
 
