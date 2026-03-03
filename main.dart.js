@@ -39540,7 +39540,7 @@ s.az$=null
 s.aG()}}
 A.Ht.prototype={
 T(a){var s=null
-return new A.wH(B.DT,"Life and Death Timur",A.rr(s,A.anG(B.Z,s,s,B.hp),s),!1,s)}}
+return new A.wH(B.DT,"Life and Death Nuris",A.rr(s,A.anG(B.Z,s,s,B.hp),s),!1,s)}}
 A.kI.prototype={
 H(){return"Difficulty."+this.b}}
 A.zJ.prototype={
