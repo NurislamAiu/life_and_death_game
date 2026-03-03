@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Life and Death Timur',
+      title: 'Life and Death Nuris',
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.red)),
       home: const GameScreen(),
     );
