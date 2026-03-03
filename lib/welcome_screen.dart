@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:example_lesson1/leaderboard_screen.dart';
 
 enum Difficulty { easy, medium, hard }
 
@@ -127,6 +128,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             _buildSecretCodeField(),
             const SizedBox(height: 24),
             _buildStartButton(context),
+            const SizedBox(height: 16),
+            _buildLeaderboardButton(context),
           ],
         ),
       ),
@@ -370,6 +373,29 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               letterSpacing: 1.5,
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardButton(BuildContext context) {
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        foregroundColor: Colors.white70,
+      ),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => LeaderboardScreen(difficulty: _selectedDifficulty)), // Pass selected difficulty
+        );
+      },
+      icon: const Icon(Icons.leaderboard, color: Colors.blueAccent),
+      label: Text(
+        'View Leaderboard',
+        style: GoogleFonts.poppins(
+          fontSize: 16,
+          color: Colors.blueAccent,
         ),
       ),
     );

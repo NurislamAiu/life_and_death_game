@@ -376,6 +376,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _hugeBaby = null;
       _score += 50;
     });
+    _startSpawning();
   }
 
   void _triggerBossDefeatEffect(Offset position) {
@@ -413,7 +414,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {
       _score = newScore;
       _entities.removeWhere((e) => e.id == entity.id);
-
     });
 
     if (newScore > 0 && newScore % 150 == 0) {
@@ -464,7 +464,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (!mounted) return;
     setState(() {
       _entities.removeWhere((e) => e.type == EntityType.oldMan);
+      _flashWhite = true; // Trigger flash
     });
+    Timer(const Duration(milliseconds: 200),
+        () => setState(() => _flashWhite = false));
   }
 
   void _showFloatingScore(Offset position, int points) {
@@ -486,7 +489,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final playAgain = await Navigator.of(context).push<bool>(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            GameOverScreen(score: _score, strikes: 3 - _lives),
+            GameOverScreen(score: _score, strikes: 3 - _lives, difficulty: _difficulty), // Pass difficulty
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

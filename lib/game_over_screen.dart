@@ -1,15 +1,21 @@
+import 'dart:convert';
 import 'dart:ui';
+import 'package:example_lesson1/leaderboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:example_lesson1/welcome_screen.dart'; // Added import for Difficulty enum
 
 class GameOverScreen extends StatefulWidget {
   final int score;
   final int strikes;
+  final Difficulty difficulty; // Added difficulty parameter
 
   const GameOverScreen({
     super.key,
     required this.score,
     required this.strikes,
+    required this.difficulty, // Added difficulty to constructor
   });
 
   @override
@@ -20,6 +26,8 @@ class _GameOverScreenState extends State<GameOverScreen> with TickerProviderStat
   late AnimationController _orb1Controller;
   late AnimationController _orb2Controller;
   late AnimationController _titleGlowController;
+  final TextEditingController _nameController = TextEditingController();
+  bool _scoreSaved = false;
 
   @override
   void initState() {
@@ -38,6 +46,54 @@ class _GameOverScreenState extends State<GameOverScreen> with TickerProviderStat
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    _loadPlayerName();
+  }
+
+  Future<void> _loadPlayerName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _nameController.text = prefs.getString('playerName') ?? '';
+    });
+  }
+
+  Future<void> _saveHighScore() async {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter your name to save the score.')),
+      );
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final newEntry = ScoreEntry(
+      name: _nameController.text.trim(),
+      score: widget.score,
+      date: DateTime.now(),
+    );
+
+    // Use difficulty-specific key for saving scores
+    final scoresJson = prefs.getStringList('highScores_${widget.difficulty.name}') ?? [];
+    List<ScoreEntry> highScores = scoresJson
+        .map((jsonString) => ScoreEntry.fromJson(Map<String, dynamic>.from(json.decode(jsonString))))
+        .toList();
+
+    highScores.add(newEntry);
+    highScores.sort((a, b) => b.score.compareTo(a.score)); // Sort descending
+    if (highScores.length > 10) {
+      highScores = highScores.sublist(0, 10); // Keep only top 10
+    }
+
+    final updatedScoresJson = highScores.map((entry) => json.encode(entry.toJson())).toList();
+    await prefs.setStringList('highScores_${widget.difficulty.name}', updatedScoresJson);
+    await prefs.setString('playerName', _nameController.text.trim());
+
+    setState(() {
+      _scoreSaved = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Score saved!')),
+    );
   }
 
   @override
@@ -45,6 +101,7 @@ class _GameOverScreenState extends State<GameOverScreen> with TickerProviderStat
     _orb1Controller.dispose();
     _orb2Controller.dispose();
     _titleGlowController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -117,13 +174,15 @@ class _GameOverScreenState extends State<GameOverScreen> with TickerProviderStat
   Widget _buildContent(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildTitle(),
             const SizedBox(height: 40),
             _buildStatsCard(),
+            const SizedBox(height: 24),
+            _buildNameInputAndSaveButton(),
             const SizedBox(height: 40),
             _buildActionButtons(context),
           ],
@@ -266,6 +325,57 @@ class _GameOverScreenState extends State<GameOverScreen> with TickerProviderStat
     );
   }
 
+  Widget _buildNameInputAndSaveButton() {
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: TextField(
+                controller: _nameController,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: 'Enter your name',
+                  hintStyle: GoogleFonts.poppins(color: Colors.white70),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+            backgroundColor: _scoreSaved ? Colors.grey : Colors.green.shade600,
+            foregroundColor: Colors.white,
+            elevation: 8,
+            shadowColor: Colors.green.withOpacity(0.5),
+          ),
+          onPressed: _scoreSaved ? null : _saveHighScore,
+          icon: const Icon(Icons.save),
+          label: Text(
+            _scoreSaved ? 'Score Saved!' : 'Save Score',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
@@ -284,6 +394,30 @@ class _GameOverScreenState extends State<GameOverScreen> with TickerProviderStat
           icon: const Icon(Icons.refresh),
           label: Text(
             'Play Again',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+            backgroundColor: Colors.blue.shade600,
+            foregroundColor: Colors.white,
+            elevation: 8,
+            shadowColor: Colors.blue.withOpacity(0.5),
+          ),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => LeaderboardScreen(difficulty: widget.difficulty)), // Pass difficulty
+            );
+          },
+          icon: const Icon(Icons.leaderboard),
+          label: Text(
+            'View Leaderboard',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
